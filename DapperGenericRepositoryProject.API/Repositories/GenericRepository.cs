@@ -1,6 +1,7 @@
 ﻿
 using Dapper;
-using Microsoft.Data.SqlClient;
+using DapperGenericRepositoryProject.API.Interfaces;
+using DapperGenericRepositoryProject.API.Models;
 using System.Data;
 using System.Reflection;
 using static Dapper.SqlMapper;
@@ -9,13 +10,11 @@ namespace DapperGenericRepositoryProject.API.Repositories
 {
     public class GenericRepository<T> : IGenericRepository<T> where T : class
     {
-        IDbConnection _connection;
+        protected readonly Context _context;
 
-        readonly string connectionString = "Data Source=database-name;Initial Catalog=table-name;Integrated Security=True;TrustServerCertificate=True;";
-
-        public GenericRepository()
+        public GenericRepository(Context context)
         {
-            _connection = new SqlConnection(connectionString);
+            _context = context;
         }
 
         public bool Add(T entity)
@@ -37,8 +36,11 @@ namespace DapperGenericRepositoryProject.API.Repositories
             var values = string.Join(", ", parameters.ParameterNames.Select(p => $"@{p}"));
 
             var query = $"INSERT INTO {tableName} ({columns}) VALUES ({values})";
-            rowsEffected = _connection.Execute(query, parameters);
-            return rowsEffected > 0 ? true : false;
+            using (var _connection = _context.CreateConnection())
+            {
+                rowsEffected = _connection.Execute(query, parameters);
+                return rowsEffected > 0 ? true : false;
+            }
 
 
         }
@@ -53,11 +55,13 @@ namespace DapperGenericRepositoryProject.API.Repositories
             string keyColumn = properties[0].Name;
 
             string query = $"DELETE FROM {tableName} Where {keyColumn} = @Id";
+            using (var _connection = _context.CreateConnection())
+            {
+                rowsEffected = _connection.Execute(query, new { Id = id });
 
-            rowsEffected = _connection.Execute(query, new { Id = id });
 
-
-            return rowsEffected > 0 ? true : false;
+                return rowsEffected > 0 ? true : false;
+            }
 
         }
 
@@ -67,11 +71,13 @@ namespace DapperGenericRepositoryProject.API.Repositories
 
             var tableName = typeof(T).Name + 's';
             string query = $"SELECT * FROM {tableName}";
+            using (var _connection = _context.CreateConnection())
+            {
+                result = _connection.Query<T>(query);
 
-            result = _connection.Query<T>(query);
 
-
-            return result;
+                return result;
+            }
 
         }
 
@@ -85,11 +91,13 @@ namespace DapperGenericRepositoryProject.API.Repositories
 
             string keyColumn = properties[0].Name;
             string query = $"SELECT * FROM {tableName} WHERE {keyColumn} = '{id}'";
+            using (var _connection = _context.CreateConnection())
+            {
+                result = _connection.Query<T>(query);
 
-            result = _connection.Query<T>(query);
 
-
-            return result.FirstOrDefault();
+                return result.FirstOrDefault();
+            }
 
         }
 
@@ -111,9 +119,12 @@ namespace DapperGenericRepositoryProject.API.Repositories
 
             var setClauses = string.Join(", ", properties.Skip(1).Select(p => $"{p.Name} = @{p.Name}"));
             var query = $"UPDATE {tableName} SET {setClauses} WHERE {keyColumn} = @{keyColumn}";
-            rowsEffected = _connection.Execute(query, parameters);
+            using (var _connection = _context.CreateConnection())
+            {
+                rowsEffected = _connection.Execute(query, parameters);
 
-            return rowsEffected > 0 ? true : false;
+                return rowsEffected > 0 ? true : false;
+            }
 
         }
 

@@ -1,6 +1,5 @@
-﻿using DapperGenericRepositoryProject.API.Models;
-using DapperGenericRepositoryProject.API.Repositories;
-using Microsoft.AspNetCore.Http;
+﻿using DapperGenericRepositoryProject.API.Interfaces;
+using DapperGenericRepositoryProject.API.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DapperGenericRepositoryProject.API.Controllers
@@ -9,59 +8,53 @@ namespace DapperGenericRepositoryProject.API.Controllers
     [ApiController]
     public class ProductsController : ControllerBase
     {
+        private readonly IProductRepository _productRepository;
+
+        public ProductsController(IProductRepository productRepository)
+        {
+            _productRepository = productRepository;
+        }
+
         [HttpGet]
         public IActionResult GetAll()
         {
             List<Product> products = new List<Product>();
-
-            ProductRepository productsRepository = new ProductRepository();
-            products=productsRepository.GetAll().ToList();
-
+            products = _productRepository.GetAll().ToList();
             return Ok(products);
         }
         [HttpGet("{ProductId}")]
         public IActionResult Get(int ProductId)
         {
             Product product = new Product();
-            ProductRepository productRepository = new ProductRepository();
-            product = productRepository.GetById(ProductId);
+            product = _productRepository.GetById(ProductId);
             return Ok(product);
+        }
+        [HttpGet("[action]")]
+        public async Task<IActionResult> OldestProducts()
+        {
+            List<Product> products = new List<Product>();
+            products = await _productRepository.GetOldestProductsAsync();
+            return Ok(products);
         }
         [HttpDelete]
         public IActionResult Delete(int id)
         {
             bool isDeleted = false;
-            ProductRepository productRepository = new ProductRepository();
-            isDeleted = productRepository.Delete(id);
+            isDeleted = _productRepository.Delete(id);
             return Ok(isDeleted);
         }
         [HttpPost]
         public IActionResult Add(Product product)
         {
             bool isAdded = false;
-            try
-            {
-                ProductRepository productRepository = new ProductRepository();
-                isAdded = productRepository.Add(product);
-            }
-            catch (Exception ex)
-            {
-            }
+            isAdded = _productRepository.Add(product);
             return Ok(isAdded);
         }
         [HttpPut]
         public IActionResult Update(Product product)
         {
             bool isUpdated = false;
-            try
-            {
-                ProductRepository productRepository = new ProductRepository();
-                isUpdated = productRepository.Update(product);
-            }
-            catch (Exception ex)
-            {
-            }
-
+            isUpdated = _productRepository.Update(product);
             return Ok(isUpdated);
         }
     }
