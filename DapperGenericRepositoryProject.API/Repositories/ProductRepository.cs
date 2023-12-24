@@ -1,4 +1,5 @@
 ﻿using Dapper;
+using DapperGenericRepositoryProject.API.DTOs;
 using DapperGenericRepositoryProject.API.Interfaces;
 using DapperGenericRepositoryProject.API.Models;
 
@@ -16,6 +17,28 @@ namespace DapperGenericRepositoryProject.API.Repositories
             using (var connection = _context.CreateConnection())
             {
                 var values = await connection.QueryAsync<Product>(query);
+                return values.ToList();
+            }
+        }
+
+        public async Task<List<ProductWithCategoryDto>> GetProductWithCategoryAsync()
+        {
+            string query = @"SELECT p.ProductId, p.name , p.description,
+                            p.CreateDate, c.name , c.categoryId AS categoryId
+                            FROM Products p INNER JOIN Categories c ON p.categoryId = c.categoryId";
+
+            using (var connection = _context.CreateConnection())
+            {
+                var values = await connection.QueryAsync<ProductWithCategoryDto, Category, ProductWithCategoryDto>(
+                    query,
+                    (product, category) =>
+                    {
+                        product.Category = category;
+                        return product;
+                    },
+                    splitOn: "name"
+                );
+
                 return values.ToList();
             }
         }

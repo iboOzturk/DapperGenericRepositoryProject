@@ -1,4 +1,5 @@
-﻿using DapperGenericRepositoryProject.API.Interfaces;
+﻿using DapperGenericRepositoryProject.API.DTOs;
+using DapperGenericRepositoryProject.API.Interfaces;
 using DapperGenericRepositoryProject.API.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -36,6 +37,14 @@ namespace DapperGenericRepositoryProject.API.Controllers
             products = await _unitOfWork.Products.GetOldestProductsAsync();
             return Ok(products);
         }
+        [HttpGet("[action]")]
+        public async Task<IActionResult> ProductWithCategory()
+        {
+            List<ProductWithCategoryDto> products = new List<ProductWithCategoryDto>();
+            products = await _unitOfWork.Products.GetProductWithCategoryAsync();
+            return Ok(products);
+        }
+            
         [HttpDelete]
         public IActionResult Delete(int id)
         {
