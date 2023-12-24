@@ -1,6 +1,7 @@
 using DapperGenericRepositoryProject.API.Interfaces;
 using DapperGenericRepositoryProject.API.Models;
 using DapperGenericRepositoryProject.API.Repositories;
+using DapperGenericRepositoryProject.API.UnitOfWork;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +10,7 @@ builder.Services.AddTransient<Context>();
 
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddTransient<IProductRepository, ProductRepository>();
+builder.Services.AddTransient<IUnitOfWork, UnitOfWork>();
 
 
 builder.Services.AddControllers();

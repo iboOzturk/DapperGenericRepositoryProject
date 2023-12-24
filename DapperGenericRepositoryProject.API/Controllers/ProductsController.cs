@@ -8,53 +8,53 @@ namespace DapperGenericRepositoryProject.API.Controllers
     [ApiController]
     public class ProductsController : ControllerBase
     {
-        private readonly IProductRepository _productRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public ProductsController(IProductRepository productRepository)
+        public ProductsController(IUnitOfWork unitOfWork)
         {
-            _productRepository = productRepository;
+            _unitOfWork = unitOfWork;
         }
 
         [HttpGet]
         public IActionResult GetAll()
         {
             List<Product> products = new List<Product>();
-            products = _productRepository.GetAll().ToList();
+            products = _unitOfWork.Products.GetAll().ToList();
             return Ok(products);
         }
         [HttpGet("{ProductId}")]
         public IActionResult Get(int ProductId)
         {
             Product product = new Product();
-            product = _productRepository.GetById(ProductId);
+            product = _unitOfWork.Products.GetById(ProductId);
             return Ok(product);
         }
         [HttpGet("[action]")]
         public async Task<IActionResult> OldestProducts()
         {
             List<Product> products = new List<Product>();
-            products = await _productRepository.GetOldestProductsAsync();
+            products = await _unitOfWork.Products.GetOldestProductsAsync();
             return Ok(products);
         }
         [HttpDelete]
         public IActionResult Delete(int id)
         {
             bool isDeleted = false;
-            isDeleted = _productRepository.Delete(id);
+            isDeleted = _unitOfWork.Products.Delete(id);
             return Ok(isDeleted);
         }
         [HttpPost]
         public IActionResult Add(Product product)
         {
             bool isAdded = false;
-            isAdded = _productRepository.Add(product);
+            isAdded = _unitOfWork.Products.Add(product);
             return Ok(isAdded);
         }
         [HttpPut]
         public IActionResult Update(Product product)
         {
             bool isUpdated = false;
-            isUpdated = _productRepository.Update(product);
+            isUpdated = _unitOfWork.Products.Update(product);
             return Ok(isUpdated);
         }
     }
