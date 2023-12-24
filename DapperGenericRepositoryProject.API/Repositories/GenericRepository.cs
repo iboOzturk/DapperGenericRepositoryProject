@@ -1,8 +1,8 @@
-﻿
-using Dapper;
+﻿using Dapper;
 using DapperGenericRepositoryProject.API.Interfaces;
 using DapperGenericRepositoryProject.API.Models;
 using System.Data;
+using System.Linq;
 using System.Reflection;
 using static Dapper.SqlMapper;
 
@@ -17,117 +17,99 @@ namespace DapperGenericRepositoryProject.API.Repositories
             _context = context;
         }
 
-        public bool Add(T entity)
+        private string GetTableName()
         {
-            int rowsEffected = 0;
+            var typeName = typeof(T).Name;
+            return typeName.EndsWith("y") ? typeName[..^1] + "ies" : typeName + "s";
+        }
+
+        private string GetKeyColumn()
+        {
+            return typeof(T).GetProperties().First().Name;
+        }
+
+        private DynamicParameters GetParameters(T entity, bool includeFirstProperty = false)
+        {
             var parameters = new DynamicParameters();
             var properties = entity.GetType().GetProperties();
 
-            foreach (var property in properties)
+            foreach (var property in properties.Skip(includeFirstProperty ? 0 : 1))
             {
-                if (property == properties[0])
-                    continue;
-
                 var value = property.GetValue(entity, null);
                 parameters.Add($"@{property.Name}", value);
             }
-            var tableName = typeof(T).Name + 's';
+
+            return parameters;
+        }
+
+        public bool Add(T entity)
+        {
+            var parameters = GetParameters(entity);
+
+            var tableName = GetTableName();
             var columns = string.Join(", ", parameters.ParameterNames);
             var values = string.Join(", ", parameters.ParameterNames.Select(p => $"@{p}"));
 
             var query = $"INSERT INTO {tableName} ({columns}) VALUES ({values})";
-            using (var _connection = _context.CreateConnection())
+
+            using (var connection = _context.CreateConnection())
             {
-                rowsEffected = _connection.Execute(query, parameters);
-                return rowsEffected > 0 ? true : false;
+                return connection.Execute(query, parameters) > 0;
             }
-
-
         }
 
         public bool Delete(int id)
         {
-            int rowsEffected = 0;
+            var tableName = GetTableName();
+            var keyColumn = GetKeyColumn();
 
-            var tableName = typeof(T).Name + 's';
+            var query = $"DELETE FROM {tableName} WHERE {keyColumn} = @Id";
 
-            PropertyInfo[] properties = typeof(T).GetProperties();
-            string keyColumn = properties[0].Name;
-
-            string query = $"DELETE FROM {tableName} Where {keyColumn} = @Id";
-            using (var _connection = _context.CreateConnection())
+            using (var connection = _context.CreateConnection())
             {
-                rowsEffected = _connection.Execute(query, new { Id = id });
-
-
-                return rowsEffected > 0 ? true : false;
+                return connection.Execute(query, new { Id = id }) > 0;
             }
-
         }
 
         public IEnumerable<T> GetAll()
         {
-            IEnumerable<T> result = null;
+            var tableName = GetTableName();
+            var query = $"SELECT * FROM {tableName}";
 
-            var tableName = typeof(T).Name + 's';
-            string query = $"SELECT * FROM {tableName}";
-            using (var _connection = _context.CreateConnection())
+            using (var connection = _context.CreateConnection())
             {
-                result = _connection.Query<T>(query);
-
-
-                return result;
+                return connection.Query<T>(query);
             }
-
         }
 
         public T GetById(int id)
         {
-            IEnumerable<T> result = null;
+            var tableName = GetTableName();
+            var keyColumn = GetKeyColumn();
 
+            var query = $"SELECT * FROM {tableName} WHERE {keyColumn} = @Id";
 
-            var tableName = typeof(T).Name + 's';
-            PropertyInfo[] properties = typeof(T).GetProperties();
-
-            string keyColumn = properties[0].Name;
-            string query = $"SELECT * FROM {tableName} WHERE {keyColumn} = '{id}'";
-            using (var _connection = _context.CreateConnection())
+            using (var connection = _context.CreateConnection())
             {
-                result = _connection.Query<T>(query);
-
-
-                return result.FirstOrDefault();
+                return connection.QueryFirstOrDefault<T>(query, new { Id = id });
             }
-
         }
 
         public bool Update(T entity)
         {
-            int rowsEffected = 0;
+            var parameters = GetParameters(entity,true);
 
-            var parameters = new DynamicParameters();
+            var keyColumn = GetKeyColumn();
+            var tableName = GetTableName();
 
-            var properties = entity.GetType().GetProperties();
-            string keyColumn = properties[0].Name;
-            var tableName = typeof(T).Name + 's';
+            var setClauses = string.Join(", ", parameters.ParameterNames.Skip(1).Select(p => $"{p} = @{p}"));
 
-            foreach (var property in properties)
-            {
-                var value = property.GetValue(entity, null);
-                parameters.Add($"@{property.Name}", value);
-            }
-
-            var setClauses = string.Join(", ", properties.Skip(1).Select(p => $"{p.Name} = @{p.Name}"));
             var query = $"UPDATE {tableName} SET {setClauses} WHERE {keyColumn} = @{keyColumn}";
-            using (var _connection = _context.CreateConnection())
+
+            using (var connection = _context.CreateConnection())
             {
-                rowsEffected = _connection.Execute(query, parameters);
-
-                return rowsEffected > 0 ? true : false;
+                return connection.Execute(query, parameters) > 0;
             }
-
         }
-
     }
 }
-

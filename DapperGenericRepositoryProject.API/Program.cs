@@ -10,6 +10,7 @@ builder.Services.AddTransient<Context>();
 
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddTransient<IProductRepository, ProductRepository>();
+builder.Services.AddTransient<ICategoryRepository, CategoryRepository>();
 builder.Services.AddTransient<IUnitOfWork, UnitOfWork>();
 
 
